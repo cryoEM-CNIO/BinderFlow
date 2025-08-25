@@ -1,0 +1,338 @@
+/* Theme colors */
+:root {
+    --primary-color: #c14168;
+    --secondary-color: #4b2362;
+    --panel-bg: #f4f3f4;
+    --text-color: #111;
+}
+
+.card-header-primary {
+    background-color: var(--primary-color) !important;
+    color: #fff !important;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #fefefe;
+    color: #111;
+    margin: 0;
+    padding: 0;
+}
+
+.app-title {
+    margin-left: 15px;
+    margin-top: 15px;
+    margin-bottom: 0.5em;
+    font-size: 2.5em;
+    font-weight: 700;
+}
+
+.button {
+    align-items: center;
+    background-color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    box-sizing: border-box;
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    padding: 0.3em 1.2em;
+    margin: 0.5em 0.3em 0.3em 0;
+    font-size: 1.1em;
+    font-weight: 500;
+    border-radius: 2em;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.button-danger {
+    align-items: center;
+    background-color: var(--secondary-color);
+    border: 2px solid var(--secondary-color);
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    padding: 0.3em 1.2em;
+    margin: 0.5em 0.3em 0.3em 0;
+    font-size: 1.1em;
+    font-weight: 500;
+    border-radius: 2em;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.button:hover, .button-danger:hover {
+    opacity: 0.85;
+}
+
+.dropdown {
+    background-color: #F2F3F4;
+    color: #000;
+    cursor: pointer;
+    width: 100%;
+    margin: 0.5em 0.3em 0.3em 0;
+    font-size: 1.2em;
+    font-weight: 500;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.input-box {
+    font-size: 0.9em;
+    padding: 0.3em 1.2em;
+    width: 18%;
+    margin-left: 0%;
+    margin-right: 1%;
+    color: black;
+    vertical-align: center;
+    margin-bottom: 2px;
+}
+
+.graph-container {
+    width: 100% !important;
+    height: 60vh !important;
+    min-height: 400px !important;
+}
+.app-wrapper {
+    margin: 40px;
+    display: flex;
+    align-items: flex-start;
+}
+
+
+.slider-section {
+    width: 30vh;
+    padding: 0 10px;
+}
+
+.threshold-sliders {
+    flex: 0 0 280px;
+    max-width: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Style modifications of viewers*/
+
+.outfile_viewer{
+    overflow-y: auto;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    width: 100%;
+    word-break: break-word;    
+}
+
+.model-options-title {
+    font-size: 1.6em;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 10px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+/* Updated plot-and-controls layout for responsive grid */
+.plot-and-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+    align-items: start;
+}
+
+.plot-and-controls .graph-card {
+    display: flex;
+    flex-direction: column;
+}
+/* Ensure the card body and graph fill the card */
+.graph-card .card-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+}
+.graph-card .card-body .graph-container {
+    flex: 1 1 auto;
+}
+
+.slider-toggle {
+    background-color: transparent;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 1em;
+    padding: 0.5em;
+    margin-bottom: 1em;
+    text-align: left;
+    font-weight: bold;
+}
+
+.threshold-sliders.collapsed {
+    display: none;
+}
+.main-content {
+    flex: 1;
+    padding: 20px;
+}
+
+.axis-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+.axis-controls.collapsed {
+    display: none;
+}
+.axis-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.axis-label {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+/* Card styling for graphs */
+.graph-card {
+    border-radius: 8px !important;
+    box-shadow: 0px 2px 8px rgba(0,0,0,0.1) !important;
+    padding: 1rem 1.5rem;
+    margin-bottom: 2rem;
+    background-color: #ffffff;
+}
+.graph-card .card-header {
+    background: transparent;
+    border-bottom: none;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Dash Tabs selected styling override */
+
+/* Sleek tab styling */
+.tab {
+    padding: 0.5rem 1rem !important;
+    margin-right: 0.5rem !important;
+    border: none !important;
+    border-bottom: 2px solid transparent !important;
+    background: transparent !important;
+    font-weight: 500 !important;
+    color: #555 !important;
+    font-size: 1.4em !important;
+    border-radius: 4px 4px 0 0 !important;
+    transition: background 0.2s, color 0.2s !important;
+}
+
+.tab:hover {
+    background: rgba(0, 0, 0, 0.05) !important;
+}
+
+.tab--selected {
+    background: var(--primary-color) !important;
+    color: #fff !important;
+    border-bottom-color: var(--primary-color) !important;
+    font-weight: 600 !important;
+}
+
+.tab--selected:hover {
+    background: var(--primary-color) !important;
+}
+
+/* Sidebar constraints */
+.sidebar {
+    width: 300px;
+    flex: 0 0 300px;
+    background-color: var(--panel-bg, #f4f4f4);
+    padding: 20px;
+    overflow-y: auto;
+    border-right: 1px solid #ccc;
+}
+
+/* Constrain sidebar sliders within collapse */
+#filters-collapse .dash-slider,
+#filters-collapse .rc-slider {
+    max-width: 260px !important;
+    margin: 8px auto 16px !important;
+    width: 100% !important;
+}
+
+
+/* Smaller font for threshold titles inside Filters & Axes collapse */
+#filters-collapse h5 {
+    font-size: 0.85em !important;
+    margin-bottom: 0.4em !important;
+}
+
+/* Metrics cards for key values */
+.metrics-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+.metric-card {
+    flex: 1;
+    background-color: var(--panel-bg, #f4f4f4);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+}
+.metric-value {
+    font-size: 1.5em;
+    font-weight: bold;
+}
+.metric-label {
+    font-size: 1.5em;
+    color: #555;
+}
+/* Grid layout for restriction enzyme checklist */
+.enzyme-grid .dash-checklist {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)) !important;
+    gap: 0.5rem !important;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.accordion-item {
+    border: 1px solid var(--primary-color) !important;
+    border-radius: 0.5rem !important;
+    margin-bottom: 1rem;
+}
+
+.accordion-button {
+    background-color: var(--primary-color) !important;
+    color: #fff !important;
+    font-size: 1.1em !important;
+    font-weight: 600 !important;
+    padding: 0.75rem 1.25rem !important;
+}
+
+.accordion-button.collapsed {
+    background-color: var(--primary-color) !important;
+    color: #fff !important;
+}
+
+.accordion-button::after {
+    filter: invert(1) !important;
+}
+
+.accordion-body {
+    padding: 1rem !important;
+    background-color: #fafafa !important;
+}
+
+/* Ensure accordion header text always shows */
+.accordion-button {
+    color: #fff !important;
+}
+
+/* Guarantee primary background on both collapsed and expanded headers */
+.accordion-button:not(.collapsed),
+.accordion-button.collapsed {
+    background-color: var(--primary-color) !important;
+    color: #fff !important;
+}
