@@ -533,7 +533,10 @@ def update_graph(working_dir, n, n_clicks_stop, xaxis_value, yaxis_value, input_
     # Metrics for cards
     finished_models = len(merged_df)
     hit_count = len(dropdown_options)
-    if finished_models > 0:
+    if dropdown_options == ["No hits found using current filters"]:
+        hit_count = 0
+        hit_efficiency = "0%"
+    elif finished_models > 0:
         hit_efficiency = f"{(hit_count/finished_models*100):.1f}%"
     else:
         hit_efficiency = "N/A"

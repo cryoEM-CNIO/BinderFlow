@@ -42,7 +42,7 @@ def get_hit_names(filtered_df, xaxis_value):
         hit_names = sorted_df['description'].tolist()
         return hit_names
     else:
-        return ["No hits found under the specified conditions"]
+        return ["No hits found using current filters"]
     
 #Function to get hits file path and name for representation 
 def get_design_file_path_and_name(hits_names, directory, input_pdb_path):
