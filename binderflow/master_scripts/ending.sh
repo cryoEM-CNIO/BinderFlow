@@ -30,6 +30,6 @@ echo "input_silent: $output"
 
 # Run
 touch $output
-python3 $MICRORUN_PATH/binderflow/scripts/run_ending.py --number "$number"
+python3 $BINDERFLOW_PATH/binderflow/scripts/run_ending.py --number "$number"
 
 echo "Touched $output"

@@ -71,7 +71,7 @@ while true;do
     fi
 
     sbatch -w "$node" --nodes="$NODES" -p "$PARTITION" --open-mode=append --gres="$GRES" --exclusive --cpus-per-gpu="$CPUS_PER_GPU" -o ./output/run_$i/slurm_logs/%j.out -e ./output/run_$i/slurm_logs/%j.err \
-            $BINDERFLOW_PATH/microrun/slurm_submit/submit_sequence_diversity.sh --run "$i" --nseqs "$nseqs" --fr "$fr" --directory "$SCRIPT_DIR"
+            $BINDERFLOW_PATH/binderflow/slurm_submit/submit_sequence_diversity.sh --run "$i" --nseqs "$nseqs" --fr "$fr" --directory "$SCRIPT_DIR"
 
     total_seqs_generated=$(($i*4*$nseqs)) #This is patatero, we have to change it
     if [ $total_seqs_generated -gt $max ]; then 

@@ -83,7 +83,6 @@ else
 fi
 
 ## Contigs Getter, automatic for partial diffusion
-
 if [ "$partial_diff" = "True" ]; then 
         rfd_contigs=$(python3 $BINDERFLOW_PATH/binderflow/scripts/contigs_map_getter.py --input "$input" --partial_diff "$partial_diff")
 fi
@@ -102,7 +101,6 @@ python3 $BINDERFLOW_PATH/binderflow/scripts/json_variable_generation.py --input 
 old_i=1
 
 # RUN
-
 while [ ! -f 'campaign_done' ]; do
     i=$((i+1))
     echo "Starting cycle $i"

@@ -5,7 +5,7 @@ Script to make a JSON file with all the binder design metadata
 
 Input:
 
--- All the microrun variables
+-- All the binderflow variables
 
 Output:
 
