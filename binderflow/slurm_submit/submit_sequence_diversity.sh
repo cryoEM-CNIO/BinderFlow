@@ -31,14 +31,14 @@ for GPU_ID in $GPUS_AVAILABLE; do
     echo $GPU_ID
     (
         export CUDA_VISIBLE_DEVICES=$GPU_ID
-        LOG_DIR="output/run_$run/slurm_logs/${SLURM_JOB_ID}_gpu${GPU_ID}"
+        LOG_DIR="output/run_${run}/slurm_logs/${SLURM_JOB_ID}_gpu${GPU_ID}"
         mkdir -p "$LOG_DIR"
 
         # --------------------------------------------
         # 1 Generate the silent file
         # --------------------------------------------
 
-        $SILENT_PATH/include/silent_tools/silentrename initial_input.silent "run_${run}_design_${t}" > "output/run_${run}/run_${run}_design_${t}_input.silent" 
+        $SILENT_PATH/include/silent_tools/silentrename initial_input.silent "run_${run}_gpu_${GPU_ID}_design_${t}_substituted" > "output/run_${run}/run_${run}_design_${t}_input.silent" 
         wait
         # --------------------------------------------
         # 2 pMPNN
@@ -60,4 +60,4 @@ wait
 # 4 Finish Microrun
 # --------------------------------------------
 
-bash $BINDERFLOW_PATH/binderflow/master_scripts/ending.sh --number "$hits_number" --run "$run"
+bash $BINDERFLOW_PATH/binderflow/master_scripts/ending.sh --number "$hits_number" --run "$run" --directory "$directory"
