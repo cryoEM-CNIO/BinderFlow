@@ -32,6 +32,9 @@ source $directory/config.sh
 GPUS_AVAILABLE=$(nvidia-smi --query-gpu=index --format=csv,noheader | tr '\n' ' ')
 echo "GPUs available: $GPUS_AVAILABLE"
 
+t=1
+
+
 for GPU_ID in $GPUS_AVAILABLE; do
     echo "Using $GPU_ID"
     (
@@ -72,9 +75,9 @@ for GPU_ID in $GPUS_AVAILABLE; do
         wait
 
     ) &
+    ((t=t+1))
 done
 wait
-
 # --------------------------------------------
 # 5 Finish binderflow
 # --------------------------------------------
