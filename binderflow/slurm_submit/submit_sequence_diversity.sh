@@ -23,12 +23,8 @@ conda activate $BINDERFLOW_ENV
 GPUS_AVAILABLE=$(nvidia-smi --query-gpu=index --format=csv,noheader | tr '\n' ' ')
 echo "GPUs available: $GPUS_AVAILABLE"
 
-t=1
-
-
-
 for GPU_ID in $GPUS_AVAILABLE; do
-    echo $GPU_ID
+    echo "Using $GPU_ID"
     (
         export CUDA_VISIBLE_DEVICES=$GPU_ID
         LOG_DIR="output/run_$run/slurm_logs/${SLURM_JOB_ID}_gpu${GPU_ID}"
@@ -44,16 +40,16 @@ for GPU_ID in $GPUS_AVAILABLE; do
         # 2 pMPNN
         # --------------------------------------------
 
-        bash $BINDERFLOW_PATH/binderflow/master_scripts/pmpnn.sh --run "$run" --t "$t" --n_seqs "$pmp_nseqs" --relax_cycles "$pmp_relax_cycles" --directory "$directory" > "$LOG_DIR/pmpnn.out" 2> "$LOG_DIR/pmpnn.err"
+        bash $BINDERFLOW_PATH/binderflow/master_scripts/pmpnn.sh --run "$run" --t "$GPU_ID" --n_seqs "$pmp_nseqs" --relax_cycles "$pmp_relax_cycles" --directory "$directory" > "$LOG_DIR/pmpnn.out" 2> "$LOG_DIR/pmpnn.err"
         wait
         # --------------------------------------------
-        # 3 Scoring(AF2IG + PyRosetta)
+        # 3 Scoring (AF2IG + PyRosetta)
         # --------------------------------------------
 
-        bash $BINDERFLOW_PATH/binderflow/master_scripts/scoring.sh --run "$run" --t "$t" --directory "$directory" > "$LOG_DIR/scoring.out" 2> "$LOG_DIR/scoring.err"
+        bash $BINDERFLOW_PATH/binderflow/master_scripts/scoring.sh --run "$run" --t "$GPU_ID" --directory "$directory" > "$LOG_DIR/scoring.out" 2> "$LOG_DIR/scoring.err"
         wait
     ) &
-    ((t=t+1))
+
 done
 wait
 # --------------------------------------------
