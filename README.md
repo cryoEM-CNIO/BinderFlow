@@ -18,7 +18,7 @@ This repo is divided into two main tools: **binderflow.sh** a script to perform 
 1.Clone this repository
 
 ```shell
-git clone https://github.com/cryoEM-CNIO/Binder_Design_Watcher [install_folder]`
+git clone https://github.com/cryoEM-CNIO/BinderFlow [install_folder]`
 ```
 
 Where install_folder is the path where you want to install it.
