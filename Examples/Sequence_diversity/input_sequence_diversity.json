@@ -1,0 +1,18 @@
+{
+    "input": "input/candidate_1.pdb",
+    "template": "input/candidate_1.pdb",
+    "max_threads": "1",
+    "rfd_contigs": "",
+    "rfd_hotspots": "",
+    "rfd_ndesigns": 10,
+    "pmp_nseqs": 100,
+    "pmp_relax_cycles": "0",
+    "partial_diff": "False",
+    "noise_steps": "20",
+    "noise_scale": "1",
+    "checkpoint": "${RFD_PATH}/models/Complex_base_ckpt.pt", 
+    "node": "",
+    "residues": "None",
+    "hits_number": 48,
+    "sequence_diversity": "True"
+}

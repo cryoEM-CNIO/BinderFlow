@@ -125,7 +125,7 @@ The JSON file structure is:
     "partial_diff": "False",
     "noise_steps": 20,
     "noise_scale": 1,
-    "checkpoint": "/apps/rosetta/RFDifussion/models/Complex_base_ckpt.pt",
+    "checkpoint": "${RFD_PATH}/models/Complex_base_ckpt.pt",
     "node": "",
     "residues": "None"
 }
@@ -191,7 +191,7 @@ We have already implemented in BinderFlow some known *in-silico* refinement stra
     "partial_diff": "True",
     "noise_steps": "20",
     "noise_scale": "1",
-    "checkpoint": "/apps/rosetta/RFDifussion/models/Complex_base_ckpt.pt",
+    "checkpoint": "${RFD_PATH}/models/Complex_base_ckpt.pt",
     "node": "",
     "fixed_residues": "",
     "hits_number": 48
@@ -212,19 +212,80 @@ You can modify the amount of noise chainging the flags `noise_steps` and `noise_
 
 ### Sequence Diversity
 
-The other refinement strategy we have implemented is **Sequence Diversity**, in which you can explore the sequence space around an initial binder backbone structure. Sequence Diversity does not allow a JSON file as input, so you have to run it with flags.
+The other refinement strategy we have implemented is **Sequence Diversity**, in which you can explore the sequence space around an initial binder backbone structure. Sequence Diversity is implemented as an option inside *binderflow.sh*. To run it with flags, you have to run:
 
 ```bash
-nohup /path/to/sequence_divesity.sh --input /path/to/input --max_threads 2 --total_nseqs 5000 --batch_nseqs 200 --relax_cycles 0
+nohup /path/to/binderflow.sh --input /path/to/input.pdb --template /path/to/template.pdb --max_threads 2 --pmp_nseqs 100 --pmp_relax_cycles 0 --sequence_diversity "True" 
 ```
 
-**The mandatory flags are:**
-- `--input`: Path to the target structure
-- `--max_threads`: Number of *runs* to be executed in parallel (each *run* is one node occupied)
-- `--total_nseqs`: Total number of sequences to be generated
+And to run it with a JSON file, set `sequence_diversity` to True in the file
+```json
+{
+    "input": "input/sequence_diversity_input.pdb",
+    "template": "input/sequence_diversity_input.pdb",
+    "max_threads": "2",
+    "rfd_contigs": " ",
+    "rfd_hotspots": " ",
+    "rfd_ndesigns": 10,
+    "pmp_nseqs": 100,
+    "pmp_relax_cycles": "0",
+    "partial_diff": "False",
+    "noise_steps": "20",
+    "noise_scale": "1",
+    "checkpoint": "${RFD_PATH}/models/Complex_base_ckpt.pt",
+    "node": "",
+    "fixed_residues": "",
+    "hits_number": 48,
+    "sequence_diversity": "True"
+}
 
-**The optional flags are:**
-- `--residues`: List of residues from the design you want to fix. It should be provided between brackets, separating residues with commas and defining ranges with -. If you are doing scaffolding, the template structure must have the chain A you are using as scaffold (with the same length you are using for the scaffolding).For example: "[1,3,10-20]" **Default="None"**
-- `--relax_cycles`: Number of Fast Relax cycles to perform (No more than one). **Default=1**
-- `--batch_nseqs`: Number of sequences to generate per run. **Default=1**
-`No more than 1 sequence can be generated if the relax cycles are  set to 1`
+```
+
+```bash
+nohup /path/to/binderflow.sh --json /path/to/input.json > project_name.log 2>&1 &
+```
+
+
+## Examples
+
+### Initial binder generation
+
+We provide an example JSON file for initial binder generation against PDL1 in `BinderFlow/Examples/Initial_binder_generation`.
+
+To run it, copy the folder into your working directory and from the Initial_binder_generation folder run:
+
+```bash
+nohup /path/to/binderflow.sh --json /path/to/Initial_binder_generation/input_initial_generation.json > PDL1_initial_binder.log 2>&1 &
+```
+In a few minutes results could be observed live running from Initial_binder_generation folder:
+
+```bash
+python3 /path/to/BFmonitor/BFmonitor.py --port 8050
+```
+
+### Partial Diffusion
+
+We provide an example JSON file for Partial Diffusion refinement of a previous binder in `BinderFlow/Examples/Partial_diffusion`.
+To run it, copy the folder into your working directory and from the Partial_diffusion folder run:
+
+```bash
+nohup /path/to/binderflow.sh --json /path/to/Partial_diffusion/input_partial_diff.json > PDL1_partial_diffusion.log 2>&1 &
+``` 
+In a few minutes results could be observed live running from Partial_diffusion folder:
+
+```bash
+python3 /path/to/BFmonitor/BFmonitor.py --port 8050
+``` 
+
+### Sequence Diversity
+
+We provide an example for Sequence Diversity refinement of a previous binder in `BinderFlow/Examples/Sequence_diversity`.
+To run it, copy the folder into your working directory and from the Sequence_diversity folder run:
+```bash
+nohup /path/to/binderflow.sh --json /path/to/Sequence_diversity/input_sequence_diversity.json > PDL1_sequence_diversity.log 2>&1 &
+``` 
+In a few minutes results could be observed live running from Sequence_diversity folder: 
+
+```bash
+python3 /path/to/BFmonitor/BFmonitor.py --port 8050
+``` 

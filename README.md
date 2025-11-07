@@ -37,7 +37,10 @@ Where PKG_MANAGER is whether conda or mamba (the default and the one we use is c
 
 `As with RFD, this installs PyRosetta, which requires a license for commercial purposes.`
 
-4.After cloning the repository and installing the environment, you have to set all your local information in **config.sh** (Paths to the RFD, pMPNN and AF2IG directory, environments names and slurm configuration).  
+4.After cloning the repository and installing the environment, you have to set all your local information in **config.sh** (Paths to the RFD, pMPNN and AF2IG directory, environments names and slurm configuration). 
+
+5.For filtering of designs we use DSSP from Biopython. It requires installation using:
+`sudo apt-get install dssp` or equivalent for your system.
 
 ## BinderFlow
 
@@ -49,7 +52,7 @@ You can start designing protein binders against a selected target using BinderFl
 nohup /path/to/binderflow.sh --json /path/to/input.json > project_name.log 2>&1 &
 ```
 
-To get complete information about BinderFlow designing options and initial settings go to the [design instructions](./binderflow/BinderFlow.md) and, in the future, check the [technical report]() 
+To get complete information about BinderFlow designing options and initial settings go to the [design instructions](./binderflow/BinderFlow.md) and, in the future, check the [technical report](https://www.biorxiv.org/content/10.1101/2025.09.10.675490v1) 
 
 ## BFmonitor
 

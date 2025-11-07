@@ -19,6 +19,7 @@ while [[ $# -gt 0 ]]; do
         -w|--node) node="$2" ; shift  ;; # Provide a specific name of a node to submit to this node with -w. If not provided it will be as usual.
         -hn|--hits_number) hits_number="$2" ; shift ;;
         -re|--residues) residues="$2" ; shift ;; # Residues to fix, useful for scaffolding
+        -sd|--sequence_diversity) sequence_diversity="$2" ; shift ;; # Whether to run sequence diversity
         -d|--directory) directory="$2" ; shift ;; # Directory where the script is located
         *) echo "Unknown option: $1" ; exit 1 ;;
     esac
@@ -34,6 +35,20 @@ echo "GPUs available: $GPUS_AVAILABLE"
 
 t=1
 
+if [ "$sequence_diversity" = "True" ]; then
+    echo "Running BinderFlow with sequence diversity"
+                ## Fix residues
+    if [ $fixed != "None" ]; then 
+        python3 "$BINDERFLOW_PATH/scripts/fixing_residues.py" --residues "$residues" --pdb_input "$input"   --output "fixed_$input"
+    fi
+
+    ## create silent file
+    "$SILENT_PATH/include/silent_tools/silentfrompdbs"  "$input" > "initial_input.silent"
+
+else
+    echo "Running BinderFlow without sequence diversity"
+fi
+
 
 for GPU_ID in $GPUS_AVAILABLE; do
     echo "Using $GPU_ID"
@@ -42,38 +57,67 @@ for GPU_ID in $GPUS_AVAILABLE; do
         LOG_DIR="output/run_${run}/slurm_logs/${SLURM_JOB_ID}_gpu${GPU_ID}"
         mkdir -p "$LOG_DIR"
 
-        # ----------------------------------------
-        # 1. RFD
-        # ----------------------------------------
-        bash $BINDERFLOW_PATH/binderflow/master_scripts/rfd.sh \
-            --run "$run" --t "$GPU_ID" \
-            --input_pdb "$input" --contigmap_descriptor "$rfd_contigs" \
-            --designs_n "$rfd_ndesigns" --noise_steps "$noise_steps" \
-            --noise_scale "$noise_scale" --ckp "$ckp" \
-            --partial_diff "$partial_diff" --residues "$residues" --hotspots_descriptor "$rfd_hotspots" --directory "$directory"> "$LOG_DIR/rfd.out" 2> "$LOG_DIR/rfd.err"
-        wait
+        if [ "$sequence_diversity" = "False" ]; then
+        
+            # ----------------------------------------
+            # 1. RFD
+            # ----------------------------------------
+            bash $BINDERFLOW_PATH/binderflow/master_scripts/rfd.sh \
+                --run "$run" --t "$GPU_ID" \
+                --input_pdb "$input" --contigmap_descriptor "$rfd_contigs" \
+                --designs_n "$rfd_ndesigns" --noise_steps "$noise_steps" \
+                --noise_scale "$noise_scale" --ckp "$ckp" \
+                --partial_diff "$partial_diff" --residues "$residues" --hotspots_descriptor "$rfd_hotspots" --directory "$directory"> "$LOG_DIR/rfd.out" 2> "$LOG_DIR/rfd.err"
+            wait
 
 
-        # --------------------------------------------
-        # 2. Aligning + filtering
-        # --------------------------------------------
-        bash $BINDERFLOW_PATH/binderflow/master_scripts/aligning_filtering.sh --template "$template" --run "$run" --t "$GPU_ID" --residues "$residues" --directory "$directory" > "$LOG_DIR/aligning_filtering.out" 2> "$LOG_DIR/aligning_filtering.err"
-        wait
+            # --------------------------------------------
+            # 2. Aligning + filtering
+            # --------------------------------------------
+            bash $BINDERFLOW_PATH/binderflow/master_scripts/aligning_filtering.sh --template "$template" --run "$run" --t "$GPU_ID" --residues "$residues" --directory "$directory" > "$LOG_DIR/aligning_filtering.out" 2> "$LOG_DIR/aligning_filtering.err"
+            wait
 
 
-        # --------------------------------------------
-        # 3. pMPNN
-        # --------------------------------------------
-        bash $BINDERFLOW_PATH/binderflow/master_scripts/pmpnn.sh --run "$run" --t "$GPU_ID" --n_seqs "$pmp_nseqs" --relax_cycles "$pmp_relax_cycles" --directory "$directory" > "$LOG_DIR/pmpnn.out" 2> "$LOG_DIR/pmpnn.err"
-        wait
+            # --------------------------------------------
+            # 3. pMPNN
+            # --------------------------------------------
+            bash $BINDERFLOW_PATH/binderflow/master_scripts/pmpnn.sh --run "$run" --t "$GPU_ID" --n_seqs "$pmp_nseqs" --relax_cycles "$pmp_relax_cycles" --directory "$directory" > "$LOG_DIR/pmpnn.out" 2> "$LOG_DIR/pmpnn.err"
+            wait
 
 
-        # --------------------------------------------
-        # 4. Scoring
-        # --------------------------------------------
-        bash $BINDERFLOW_PATH/binderflow/master_scripts/scoring.sh --run "$run" --t "$GPU_ID" --directory "$directory" > "$LOG_DIR/scoring.out" 2> "$LOG_DIR/scoring.err"
-        wait
+            # --------------------------------------------
+            # 4. Scoring
+            # --------------------------------------------
+            bash $BINDERFLOW_PATH/binderflow/master_scripts/scoring.sh --run "$run" --t "$GPU_ID" --directory "$directory" > "$LOG_DIR/scoring.out" 2> "$LOG_DIR/scoring.err"
+            wait
+        else
+            # If sequence diversity is True,
 
+            # --------------------------------------------
+            # Process the needed data
+            # --------------------------------------------
+            
+            conda activate $BINDERFLOW_ENV
+
+            # --------------------------------------------
+            # 1 Generate the silent file
+            # --------------------------------------------
+
+            $SILENT_PATH/include/silent_tools/silentrename initial_input.silent "run_${run}_gpu_${GPU_ID}_design_${t}_substituted" > "output/run_${run}/run_${run}_design_${t}_input.silent" 
+            wait
+            # --------------------------------------------
+            # 2 pMPNN
+            # --------------------------------------------
+
+            bash $BINDERFLOW_PATH/binderflow/master_scripts/pmpnn.sh --run "$run" --t "$t" --n_seqs "$pmp_nseqs" --relax_cycles "$pmp_relax_cycles" --directory "$directory" > "$LOG_DIR/pmpnn.out" 2> "$LOG_DIR/pmpnn.err"
+            wait
+            # --------------------------------------------
+            # 3 Scoring(AF2IG + PyRosetta)
+            # --------------------------------------------
+
+            bash $BINDERFLOW_PATH/binderflow/master_scripts/scoring.sh --run "$run" --t "$t" --directory "$directory" > "$LOG_DIR/scoring.out" 2> "$LOG_DIR/scoring.err"
+            wait
+        fi
     ) &
     ((t=t+1))
 done

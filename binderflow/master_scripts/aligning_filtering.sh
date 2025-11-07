@@ -38,6 +38,6 @@ echo "Current machine $machine"
 python3 $BINDERFLOW_PATH/binderflow/scripts/biopython_align.py --template $template --chain "B" --run "$run" --t "$t"  --residues "$residues" --partial_diff "$partial_diff"
 #run silent to split in 4 groups each for each gpu
 echo "Creating silent files"
-/apps/rosetta/dl_binder_design/include/silent_tools/silentfrompdbsparallel "output/run_${run}/run_${run}_gpu_${t}_design_*_substituted.pdb" > "$silent_output"
+$SILENT_PATH/include/silent_tools/silentfrompdbsparallel "output/run_${run}/run_${run}_gpu_${t}_design_*_substituted.pdb" > "$silent_output"
 
 echo "done"

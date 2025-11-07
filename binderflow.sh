@@ -26,6 +26,7 @@ node=''
 hits_number=999
 fixed_residues="None"
 json="None"
+sequence_diversity="False"
 
 ## Parse command-line arguments
 while [[ $# -gt 0 ]]; do
@@ -47,6 +48,7 @@ while [[ $# -gt 0 ]]; do
         -w|--node) node="$2" ; shift  ;; # Provide a specific name of a node to submit to this node with -w. If not provided it will be as usual.
         -hn|--hits_number) hits_number="$2" ; shift ;;
         -re|--residues) fixed_residues="$2" ; shift ;; #Residues index to fix, useful for scaffolding
+        -sd|--sequence_diversity) sequence_diversity="$2" ; shift ;; #Whether to run sequence diversity
         *) echo "Unknown option: $1" ; exit 1 ;;
     esac
     shift  # Shift past the current argument
@@ -70,6 +72,7 @@ if [ $json != "None" ]; then
     echo "Checkpoint: $checkpoint"
     echo "Fixed residues: $fixed_residues"
     echo "Hits number: $hits_number"
+    echo "Sequence diversity: $sequence_diversity"
 fi
 
 mkdir -p ./output
@@ -90,16 +93,21 @@ echo "Using contigs map: $rfd_contigs"
 
 ## Prepare Folder & Variables
 echo "Preparing JSON to save the run variables"
+
+# If the following script raises an error, stop the execution
 python3 $BINDERFLOW_PATH/binderflow/scripts/json_variable_generation.py --input "$input" --template "$template" \
                                                                     --max_threads "$max_threads" --rfd_contigs "$rfd_contigs" \
                                                                     --rfd_hotspots "$rfd_hotspots" --rfd_ndesigns "$rfd_ndesigns" \
                                                                     --pmp_nseqs "$pmp_nseqs" --pmp_relax_cycles "$pmp_relax_cycles" \
                                                                     --partial_diff "$partial_diff" --noise_steps "$noise_steps" \
                                                                     --noise_scale "$noise_scale" --ckp "$checkpoint" \
-                                                                    --residues "$fixed_residues" --hits_number "$hits_number"
+                                                                    --residues "$fixed_residues" --hits_number "$hits_number" \
+                                                                    --sequence_diversity "$sequence_diversity" || { echo "Error: json_variable_generation.py failed. Stopping script."; exit 1; }
+
+
+
 
 old_i=1
-
 # RUN
 while [ ! -f 'campaign_done' ]; do
     i=$((i+1))
@@ -126,7 +134,7 @@ while [ ! -f 'campaign_done' ]; do
 sbatch -w "$node" --nodes="$NODES" -p "$PARTITION" --open-mode=append --gres="$GRES" --exclusive --cpus-per-gpu="$CPUS_PER_GPU" -o ./output/run_$i/slurm_logs/%j.out -e ./output/run_$i/slurm_logs/%j.err \
        "$BINDERFLOW_PATH/binderflow/slurm_submit/submit_master.sh" --input "$input" --template "$template" --run "$i" --rfd_contigs "$rfd_contigs" --rfd_ndesigns "$rfd_ndesigns" \
        --pmp_nseqs "$pmp_nseqs" --pmp_relax_cycles "$pmp_relax_cycles" --partial_diff "$partial_diff" --noise_steps "$noise_steps" --noise_scale "$noise_scale" --ckp "$checkpoint" \
-       --residues "$fixed_residues" --hits_number "$hits_number" --directory "$SCRIPT_DIR" --rfd_hotspots "$rfd_hotspots" 
+       --residues "$fixed_residues" --hits_number "$hits_number" --directory "$SCRIPT_DIR" --sequence_diversity "$sequence_diversity" --rfd_hotspots "$rfd_hotspots"
 
 done
 

@@ -1,0 +1,18 @@
+{
+    "input": "input/PDL1_trimmed.pdb",
+    "template": "input/PDL1_trimmed.pdb",
+    "max_threads": "1",
+    "rfd_contigs": "[ 65-155/0 B1018-1132/0 ]",
+    "rfd_hotspots": "[B1054,B1068]",
+    "rfd_ndesigns": 10,
+    "pmp_nseqs": 1,
+    "pmp_relax_cycles": "0",
+    "partial_diff": "False",
+    "noise_steps": "20",
+    "noise_scale": "1",
+    "checkpoint": "${RFD_PATH}/models/Complex_base_ckpt.pt", 
+    "node": "",
+    "residues": "None",
+    "hits_number": 48,
+    "sequence_diversity": "False"
+}
