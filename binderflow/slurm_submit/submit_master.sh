@@ -103,7 +103,7 @@ for GPU_ID in $GPUS_AVAILABLE; do
             # 1 Generate the silent file
             # --------------------------------------------
 
-            $SILENT_PATH/include/silent_tools/silentrename initial_input.silent "run_${run}_gpu_${GPU_ID}_design_${GPU_ID}_substituted" > "output/run_${run}/run_${run}_design_${t}_input.silent" 
+            $SILENT_PATH/include/silent_tools/silentrename initial_input.silent "run_${run}_gpu_${GPU_ID}_design_${GPU_ID}_substituted" > "output/run_${run}/run_${run}_design_${GPU_ID}_input.silent" 
             wait
             # --------------------------------------------
             # 2 pMPNN
