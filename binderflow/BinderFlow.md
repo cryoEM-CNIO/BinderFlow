@@ -169,7 +169,7 @@ nohup /path/to/binderflow.sh --json /path/to/input.json > project_name.log 2>&1 
 If you prefer to use the flags, you have to run:
 
 ```bash
-nohup /path/to/binderflow.sh --input /path/to/input.pdb --template /path/to/template.pdb --max_threads 2 --rfd_contigs "[65-155/0 BXXXX-YYYY]" --rfd_hotspots "[BXXXX, BXXXX]"
+nohup /path/to/binderflow.sh --input /path/to/input.pdb --template /path/to/template.pdb --max_threads 2 --rfd_contigs "[65-155/0 BXXXX-YYYY]" --rfd_hotspots "[BXXXX, BXXXX] > project_name.log 2>&1 &"
 ```
 
 You can add some of the optional flags from the input section if you want to modify the conditions.
@@ -205,7 +205,7 @@ nohup /path/to/binderflow.sh --json /path/to/input.json > project_name.log 2>&1 
 or using the flags:
 
 ```bash
-nohup /path/to/binderflow.sh --input /path/to/input.pdb --template /path/to/template.pdb --max_threads 2 --rfd_contigs "[ZZZ-ZZZ/0 BXXXX-YYYY]" --partial_diff "True"
+nohup /path/to/binderflow.sh --input /path/to/input.pdb --template /path/to/template.pdb --max_threads 2 --rfd_contigs "[ZZZ-ZZZ/0 BXXXX-YYYY]" --partial_diff "True" > project_name.log 2>&1 &
 ```
 
 You can modify the amount of noise chainging the flags `noise_steps` and `noise_scale`
@@ -215,7 +215,7 @@ You can modify the amount of noise chainging the flags `noise_steps` and `noise_
 The other refinement strategy we have implemented is **Sequence Diversity**, in which you can explore the sequence space around an initial binder backbone structure. Sequence Diversity is implemented as an option inside *binderflow.sh*. To run it with flags, you have to run:
 
 ```bash
-nohup /path/to/binderflow.sh --input /path/to/input.pdb --template /path/to/template.pdb --max_threads 2 --pmp_nseqs 100 --pmp_relax_cycles 0 --sequence_diversity "True" 
+nohup /path/to/binderflow.sh --input /path/to/input.pdb --template /path/to/template.pdb --max_threads 2 --pmp_nseqs 100 --pmp_relax_cycles 0 --sequence_diversity "True" > project_name.log 2>&1 &
 ```
 
 And to run it with a JSON file, set `sequence_diversity` to True in the file

@@ -103,19 +103,19 @@ for GPU_ID in $GPUS_AVAILABLE; do
             # 1 Generate the silent file
             # --------------------------------------------
 
-            $SILENT_PATH/include/silent_tools/silentrename initial_input.silent "run_${run}_gpu_${GPU_ID}_design_${t}_substituted" > "output/run_${run}/run_${run}_design_${t}_input.silent" 
+            $SILENT_PATH/include/silent_tools/silentrename initial_input.silent "run_${run}_gpu_${GPU_ID}_design_${GPU_ID}_substituted" > "output/run_${run}/run_${run}_design_${t}_input.silent" 
             wait
             # --------------------------------------------
             # 2 pMPNN
             # --------------------------------------------
 
-            bash $BINDERFLOW_PATH/binderflow/master_scripts/pmpnn.sh --run "$run" --t "$t" --n_seqs "$pmp_nseqs" --relax_cycles "$pmp_relax_cycles" --directory "$directory" > "$LOG_DIR/pmpnn.out" 2> "$LOG_DIR/pmpnn.err"
+            bash $BINDERFLOW_PATH/binderflow/master_scripts/pmpnn.sh --run "$run" --t "$GPU_ID" --n_seqs "$pmp_nseqs" --relax_cycles "$pmp_relax_cycles" --directory "$directory" > "$LOG_DIR/pmpnn.out" 2> "$LOG_DIR/pmpnn.err"
             wait
             # --------------------------------------------
             # 3 Scoring(AF2IG + PyRosetta)
             # --------------------------------------------
 
-            bash $BINDERFLOW_PATH/binderflow/master_scripts/scoring.sh --run "$run" --t "$t" --directory "$directory" > "$LOG_DIR/scoring.out" 2> "$LOG_DIR/scoring.err"
+            bash $BINDERFLOW_PATH/binderflow/master_scripts/scoring.sh --run "$run" --t "$GPU_ID" --directory "$directory" > "$LOG_DIR/scoring.out" 2> "$LOG_DIR/scoring.err"
             wait
         fi
     ) &
