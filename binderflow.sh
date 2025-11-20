@@ -4,11 +4,28 @@
 SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 source $SCRIPT_DIR/config.sh 
 
-#Checking everything
-echo $SCRIPT_DIR
-echo $BINDERFLOW_PATH
-echo $RFD_PATH
-echo $PMPNN_PATH
+#Checking defined enviroments are installed
+echo "Checking conda environments..."
+installed_envs=$(conda env list)
+for env in BINDERFLOW_ENV RFD_ENV PMPENN_ENV AF2_ENV; do
+    if [[ $installed_envs != *"${!env}"* ]]; then
+        echo "Conda environment ${!env} not found. Please create it before running the script."
+        exit 1
+    fi
+done
+echo "All required conda environments are installed."
+echo ""
+echo "Checking software paths..."
+# Check the paths defined indeed exist and are accessible
+for var in RFD_PATH PMPNN_PATH AF2IG_PATH SILENT_PATH; do
+    dir="${!var}"
+    if [ ! -d "$dir" ]; then
+        echo "$var directory $dir does not exist. Please check the path in config.sh."
+        exit 1
+    fi
+done
+echo "All software paths are valid."
+echo ""
 
 
 # Master script for deep searches in binderflow
@@ -53,6 +70,8 @@ while [[ $# -gt 0 ]]; do
     esac
     shift  # Shift past the current argument
 done
+# Making a touch od an empty file to indicate this folder has a design project
+touch .binder_design_project
 
 #Getting all info from the JSON file if provided
 if [ $json != "None" ]; then 
@@ -111,30 +130,35 @@ old_i=1
 # RUN
 while [ ! -f 'campaign_done' ]; do
     i=$((i+1))
-    echo "Starting cycle $i"
+
+
+    # Wait to ensure we don't exceed max_threads running jobs
+    if [ "$i" -gt $max_threads ]; then
+        # Count ALL jobs that are still running (from job 1 to job i-1)
+        running_count=$max_threads
+        while [ $running_count -ge $max_threads ]; do
+            running_count=0
+            running_jobs=""
+            for j in $(seq 1 $((i - 1))); do
+                if [ ! -e "output/run_${j}/run_${j}_done" ]; then
+                    running_count=$((running_count + 1))
+                    running_jobs="$running_jobs $j"
+                fi
+            done
+            
+            if [ $running_count -ge $max_threads ]; then
+                echo "Currently $running_count jobs running (runs:$running_jobs). Waiting for one to complete..."
+                sleep 60
+            fi
+        done
+        echo "Jobs running: $running_count (below limit of $max_threads). Proceeding with run_${i}"
+    fi
     mkdir -p ./output/run_$i/slurm_logs
 
-    # Set a default value for previous if i is smaller than max (initial cycles)
-    if [ "$i" -le $max_threads ]; then
-        previous=0
-    else
-        previous=$((i - $max_threads))
-    fi
-    waitfor="output/run_${previous}/run_${previous}_done"
-    # Skip waiting when previous is 0
-    if [ "$previous" -ne 0 ]; then
-        # Wait until the condition is met
-        while [ ! -e "$waitfor" ]; do
-            echo "Waiting for previous jobs to complete: $waitfor"
-            sleep 60
-        done
-    # Now that the condition is met or previous is 0, proceed to the following code
-    fi  
-
-sbatch -w "$node" --nodes="$NODES" -p "$PARTITION" --open-mode=append --gres="$GRES" --exclusive --cpus-per-gpu="$CPUS_PER_GPU" -o ./output/run_$i/slurm_logs/%j.out -e ./output/run_$i/slurm_logs/%j.err \
-       "$BINDERFLOW_PATH/binderflow/slurm_submit/submit_master.sh" --input "$input" --template "$template" --run "$i" --rfd_contigs "$rfd_contigs" --rfd_ndesigns "$rfd_ndesigns" \
-       --pmp_nseqs "$pmp_nseqs" --pmp_relax_cycles "$pmp_relax_cycles" --partial_diff "$partial_diff" --noise_steps "$noise_steps" --noise_scale "$noise_scale" --ckp "$checkpoint" \
-       --residues "$fixed_residues" --hits_number "$hits_number" --directory "$SCRIPT_DIR" --sequence_diversity "$sequence_diversity" --rfd_hotspots "$rfd_hotspots"
+    sbatch -w "$node" --nodes="$NODES" -p "$PARTITION" --open-mode=append --gres="$GRES" --exclusive --cpus-per-gpu="$CPUS_PER_GPU" -o ./output/run_$i/slurm_logs/%j.out -e ./output/run_$i/slurm_logs/%j.err \
+        "$BINDERFLOW_PATH/binderflow/slurm_submit/submit_master.sh" --input "$input" --template "$template" --run "$i" --rfd_contigs "$rfd_contigs" --rfd_ndesigns "$rfd_ndesigns" \
+        --pmp_nseqs "$pmp_nseqs" --pmp_relax_cycles "$pmp_relax_cycles" --partial_diff "$partial_diff" --noise_steps "$noise_steps" --noise_scale "$noise_scale" --ckp "$checkpoint" \
+        --residues "$fixed_residues" --hits_number "$hits_number" --directory "$SCRIPT_DIR" --sequence_diversity "$sequence_diversity" --rfd_hotspots "$rfd_hotspots"
 
 done
 

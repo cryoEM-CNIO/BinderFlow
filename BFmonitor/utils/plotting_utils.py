@@ -161,7 +161,9 @@ def radar_plot(designs_list, merged_df, pae_interaction_thres,CUTRE_thres, plddt
                 r=list(reformatted_df['values1'])+ [reformatted_df['values1'][0]],
                 theta=list(reformatted_df['variables'])+[reformatted_df['variables'][0]],
                 name=f'{AU["design"][0].replace("_substituted_dldesign","").replace("_af2pred","")} --> {AU["AreaUnits"][0]} AU',
-                fill='toself'))
+                fillcolor = 'rgba(134,48,113,0.5)', fill = 'toself',
+                line=dict(color='#863071'))
+        )
     #Second design
     if len(designs_list)==2:
         radar_figure.add_trace(
@@ -169,14 +171,16 @@ def radar_plot(designs_list, merged_df, pae_interaction_thres,CUTRE_thres, plddt
                 r=list(reformatted_df['values2'])+ [reformatted_df['values2'][0]],
                 theta=list(reformatted_df['variables'])+[reformatted_df['variables'][0]],
                 name=f'{AU["design"][1].replace("_substituted_dldesign","").replace("_af2pred","")} --> {AU["AreaUnits"][1]} AU',
-                fill='toself'))
+                fillcolor = 'rgba(237,176,129,0.5)', fill ='toself',
+                line=dict(color='#edb081'))
+        )
     #Threhsolds 
     radar_figure.add_trace(
         go.Scatterpolar(
             r=[1]*len(reformatted_df['variables'])+ [1],
             theta=list(reformatted_df['variables'])+[reformatted_df['variables'][0]],
             name='Reference Line',
-            line=dict(color='black', width=2, dash='dot')
+            line=dict(color='black', width=2, dash='dot',),
         )
     )
 
@@ -250,3 +254,37 @@ def update_designs_list(designs_list, design_to_plot):
         # Replace both designs in the list
         designs_list[1] = designs_list[0]
         designs_list[0] = new_design
+
+def scatter_plot_AF3(working_dir, xaxis, yaxis):
+    '''
+    Function to plot data from AF3 and compare with AF2
+
+    Input:
+    
+    - working_dir: Parent directory of the campaign
+    - xaxis: Variable of the xaxis
+    - yaxis: Variable of the yaxis
+
+    Output:
+
+    - Scatterplot 
+    '''
+
+    data_df = pd.read_csv(os.path.join(working_dir, 'Scoring_Stats_AF3.csv'))
+
+    scatter_plot = px.scatter(data_df,
+                            y=yaxis,
+                            x=xaxis,
+                            color='length',
+                            marginal_x = "violin",
+                            marginal_y = "violin",
+                            render_mode = 'webgl',
+                            hover_data=['description','plddt_binder','pae_interaction','length']
+                            )
+    if xaxis == 'pae_interaction':
+        scatter_plot.update_xaxes(autorange="reversed")
+
+        scatter_plot.update_traces(marker=dict(opacity=0.7))
+        return scatter_plot
+    else:
+        return scatter_plot

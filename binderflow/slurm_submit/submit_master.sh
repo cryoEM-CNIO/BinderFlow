@@ -29,20 +29,41 @@ done
 source $directory/config.sh 
 
 
+# echo all inputed variables
+echo "Input PDB: $input"
+echo "Template PDB: $template"
+echo "Run name: $run"
+echo "RFD Contigs: $rfd_contigs"
+echo "RFD Hotspots: $rfd_hotspots"
+echo "RFD N Designs: $rfd_ndesigns"
+echo "pMPNN N Seqs: $pmp_nseqs"
+echo "pMPNN Relax Cycles: $pmp_relax_cycles"
+echo "Partial Diffusion: $partial_diff"
+echo "Noise Steps: $noise_steps"
+echo "Noise Scale: $noise_scale"
+echo "Checkpoint: $ckp"
+echo "Node: $node"
+echo "Hits Number: $hits_number"
+echo "Fixed Residues: $residues"
+echo "Sequence Diversity: $sequence_diversity"
+
+
+
 # Get available GPUs from SLURM
 GPUS_AVAILABLE=$(nvidia-smi --query-gpu=index --format=csv,noheader | tr '\n' ' ')
 echo "GPUs available: $GPUS_AVAILABLE"
 
 t=1
 
+# DEfining sequence diversity
 if [ "$sequence_diversity" = "True" ]; then
     echo "Running BinderFlow with sequence diversity"
                 ## Fix residues
-    if [ $fixed != "None" ]; then 
+    if [ -n "$residues" ] && [ "$residues" != "None" ]; then 
         python3 "$BINDERFLOW_PATH/scripts/fixing_residues.py" --residues "$residues" --pdb_input "$input"   --output "fixed_$input"
     fi
-
     ## create silent file
+    conda activate $BINDERFLOW_ENV
     "$SILENT_PATH/include/silent_tools/silentfrompdbs"  "$input" > "initial_input.silent"
 
 else
@@ -102,7 +123,7 @@ for GPU_ID in $GPUS_AVAILABLE; do
             # --------------------------------------------
             # 1 Generate the silent file
             # --------------------------------------------
-
+            
             $SILENT_PATH/include/silent_tools/silentrename initial_input.silent "run_${run}_gpu_${GPU_ID}_design_${GPU_ID}_substituted" > "output/run_${run}/run_${run}_design_${GPU_ID}_input.silent" 
             wait
             # --------------------------------------------

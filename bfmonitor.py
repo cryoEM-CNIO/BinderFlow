@@ -114,6 +114,10 @@ extraction_cl_style={'margin-top':'50px','max-height':'750px','overflow-y':'auto
 # Color definitions
 color_points = 'cornflowerblue'
 
+# Directory of the script
+SCRIPT_DIR = os.path.dirname(__file__)
+
+
 # Dash app initialization
 # app = dash.Dash(__name__)
 
@@ -176,6 +180,8 @@ def serve_layout():
                             dcc.RangeSlider(id='interface_unsat_hbond_thres', min=0, max=15, value=[0,4], tooltip={"placement":"bottom","always_visible":True}),
                             html.H5('Binder Surface Hydrophobicity'),
                             dcc.RangeSlider(id='binder_surf_hyd_thres', min=0, max=1, value=[0,0.35], tooltip={"placement":"bottom","always_visible":True}),
+                            html.H5('ipSAE'),
+                            dcc.RangeSlider(id='ipSAE_thres', min=0, max=1, value=[0.6,1], tooltip={"placement":"bottom","always_visible":True}),
                             html.Hr(),
                             html.Div([
                                 html.H4('Axis Values')]),
@@ -319,8 +325,7 @@ def serve_layout():
                                         dbc.Card([
                                             dbc.CardHeader(id='job-status-counts', className='card-header-primary'),
                                             dbc.ListGroup(id='job-status-list', flush=True, className='mb-4', style={'width':'100%', 'overflowY': 'auto', 'maxHeight': '750px'}),
-                                            dcc.Interval(id='interval-component', interval=60000, n_intervals=0),
-                                            dcc.Store('filtered_df')], className='outfile_cards'
+                                            dcc.Interval(id='interval-component', interval=60000, n_intervals=0)], className='outfile_cards'
                                             ),
                                             width=4
                                     ),
@@ -407,7 +412,7 @@ def serve_layout():
                                                 dbc.Card([
                                                     dbc.CardHeader("Extraction outfile"),
                                                     dbc.CardBody([
-                                                        html.Div(id='extraction-viewer'),
+                                                        html.Div(id='extraction-viewer', children='Initial content...',style={"maxHeight": "1150px", "overflow": "scroll"}),
                                                     ])
                                                 ], className='outfile_viewer', style={'height':'100%'})
                                             ], width=6)
@@ -415,7 +420,12 @@ def serve_layout():
                                         html.Div(
                                             dbc.Button('Extract Hits', id='execute-hits', n_clicks=0, className='button'),
                                             style={'textAlign':'center', 'margin-top':'10px'}
-                                        )
+                                        ),
+                                        dcc.Interval(
+                                            id='interval-component-extraction',
+                                            interval=5000,  # Update every 5000 milliseconds (3 second)
+                                            n_intervals=0
+                                        ),
                                     ])
                                 ], className='mb-4')
                             ]),
@@ -429,44 +439,9 @@ def serve_layout():
 
 app.layout = serve_layout
 
-# Callback for molecule representation
-@callback(
-    Output("extractions_molecule", "data"),
-    [
-    Input("extractions_molecule_dropdown", "value"),
-    Input("directory-dropdown", "value"),
-    Input("input_pdb_path", "value")
-    ]
-)
-def return_molecule(value, directory, input_path):
-    if not value or not directory:
-        raise PreventUpdate
-
-    data_path, filename = get_design_file_path_and_name(value, directory, input_path)
-
-
-    file_path = os.path.join(data_path, filename + ".pdb")
-
-
-    print(f"Loading molecule from: {file_path}")
-
-    chainA = molstar_helper.get_targets(chain="A")
-    chainB = molstar_helper.get_targets(chain="B")
-
-    chainA_representation = Representation(type='cartoon', color="uniform")
-    chainA_representation.set_color_params({'value': 15577217})
-    chainB_representation = Representation(type='gaussian-surface', color="uniform")
-    chainB_representation.set_type_params({'alpha': 1})
-    chainB_representation.set_color_params({'value': 8815233})
-
-    component_A = molstar_helper.create_component("Chain A", chainA, chainA_representation)
-    component_B = molstar_helper.create_component("Chain B", chainB, chainB_representation)
-
-    data = molstar_helper.parse_molecule(file_path, "pdb", component=[component_A, component_B], preset={'kind': 'empty'})
-
-
-
-    return data
+####################################
+#### LIVE WATCHER TAB CALLBACKS ####
+####################################
 
 # Callback to update graphs and table
 @callback(
@@ -474,62 +449,52 @@ def return_molecule(value, directory, input_path):
     Output('row-count', 'children'),
     Output('hit-count', 'children'),
     Output('hit-efficiency', 'children'),
-    Output('job-status-counts', 'children'),
     Output('extractions_molecule_dropdown', 'options'),
-    Output('filtered_df', 'data'),
     Output('extraction-selection', 'options'),
     Output('extraction-selection', 'value'),
-    [
-        Input('directory-dropdown', 'value'),
-        Input('interval-component', 'n_intervals'),
-        Input('stop-campaign', 'n_clicks'),
-        Input('xaxis_value', 'value'),
-        Input('yaxis_value','value'),
-        Input('input_pdb_path', 'value'),
-        Input('pae_interaction_thres', 'value'),
-        Input('CUTRE_thres', 'value'),
-        Input('plddt_binder_thres', 'value'),
-        Input('dsasa_thres', 'value'),
-        Input('shape_complementarity_thres', 'value'),
-        Input('interface_hbond_thres', 'value'),
-        Input('interface_unsat_hbond_thres', 'value'),
-        Input('binder_surf_hyd_thres', 'value'),
-    ]
+    Input('directory-dropdown', 'value'),
+    Input('interval-component', 'n_intervals'),
+    Input('stop-campaign', 'n_clicks'),
+    Input('xaxis_value', 'value'),
+    Input('yaxis_value','value'),
+    Input('input_pdb_path', 'value'),
+    Input('pae_interaction_thres', 'value'),
+    Input('CUTRE_thres', 'value'),
+    Input('plddt_binder_thres', 'value'),
+    Input('dsasa_thres', 'value'),
+    Input('shape_complementarity_thres', 'value'),
+    Input('interface_hbond_thres', 'value'),
+    Input('interface_unsat_hbond_thres', 'value'),
+    Input('binder_surf_hyd_thres', 'value'),
+    Input('ipSAE_thres','value'),
+    
 )
 
-def update_graph(working_dir, n, n_clicks_stop, xaxis_value, yaxis_value, input_pdb_path, pae_interaction_thres, CUTRE_thres, plddt_binder_thres, dsasa_thres, shape_complementarity_thres, interface_hbond_thres, interface_unsat_hbond_thres, binder_surf_hyd_thres):
+def update_graph(working_dir, n, n_clicks_stop, xaxis_value, yaxis_value, input_pdb_path, pae_interaction_thres, CUTRE_thres, plddt_binder_thres, dsasa_thres, shape_complementarity_thres, interface_hbond_thres, interface_unsat_hbond_thres, binder_surf_hyd_thres,ipsae):
     directory = f'{working_dir}/output/'
+
     merged_df = pd.DataFrame()
     merged_df = merge_csv_files(working_dir, input_pdb_path)
-    filtered_df = filtering_df(merged_df, pae_interaction_thres, CUTRE_thres, plddt_binder_thres, dsasa_thres, shape_complementarity_thres, interface_hbond_thres, interface_unsat_hbond_thres, binder_surf_hyd_thres)
-    status_df = pd.DataFrame()
-    status_df = track_job_status(directory)
-    status_df = status_df
-    if not status_df.empty:
-        status_df_records = status_df.to_dict('records')
-    else:
-        status_df_records = []
+    if merged_df.empty:
+        scatter_plot = go.Figure()
+        scatter_plot.add_trace(go.Scatter(x=[], y=[], mode='markers'))
+        return scatter_plot, "No designs finished yet", "0", "0%", [], [], []
+    filtered_df = filtering_df(merged_df, pae_interaction_thres, CUTRE_thres, plddt_binder_thres, dsasa_thres, shape_complementarity_thres, interface_hbond_thres, interface_unsat_hbond_thres, binder_surf_hyd_thres,ipsae)
+
 
     # Make scatter plot
     scatter_plot, row_count_text = update_scatter_plot(working_dir, merged_df, filtered_df, xaxis_value, yaxis_value, input_pdb_path)
 
     ctx = dash.callback_context
 
-    # STOP CAMPAIGN
+    # STOP CAMPAIGN Hay que hacer un callback aparte de esto, y hacer el campaign_done con python en vez de un touch
     if ctx.triggered and ctx.triggered[0]['prop_id'] == 'stop-campaign.n_clicks':
         command = f'touch {working_dir}/campaign_done'
         subprocess.run(command, shell=True)
 
-    # Job status counts
-    status_counts = status_df['status'].value_counts().to_dict()
-    status_counts_formatted = ", ".join([f"{status}: {count}" for status, count in status_counts.items()])
-    job_status_counts_text = f"Job Status Counts: {status_counts_formatted}"
     # Dropdown HITS
     dropdown_options = get_hit_names(filtered_df, xaxis_value)
-
-    # jasonified df for communication between callbacks
-    jasonified_df = filtered_df.to_json(date_format='iso', orient='split')
-
+    
     # Metrics for cards
     finished_models = len(merged_df)
     hit_count = len(dropdown_options)
@@ -541,17 +506,45 @@ def update_graph(working_dir, n, n_clicks_stop, xaxis_value, yaxis_value, input_
     else:
         hit_efficiency = "N/A"
 
-    return (
-        scatter_plot,
-        row_count_text,
-        hit_count,
-        hit_efficiency,
-        job_status_counts_text,
-        dropdown_options,
-        jasonified_df,
-        dropdown_options,
-        dropdown_options
-    )
+    return scatter_plot, row_count_text, hit_count, hit_efficiency, dropdown_options, dropdown_options, dropdown_options
+    
+
+
+#callback to update the radar plot
+@callback(
+    Output('radar-plot', 'figure'),
+    [
+    Input('scatter-plot', 'clickData'),
+    Input('interval-component', 'n_intervals'),
+    Input('directory-dropdown', 'value'),
+    Input('input_pdb_path', 'value'),
+    Input('pae_interaction_thres', 'value'),
+    Input('CUTRE_thres', 'value'),
+    Input('plddt_binder_thres', 'value'),
+    Input('dsasa_thres', 'value'),
+    Input('shape_complementarity_thres', 'value'),
+    Input('interface_hbond_thres', 'value'),
+    Input('interface_unsat_hbond_thres', 'value'),
+    Input('binder_surf_hyd_thres', 'value'),
+    ])
+
+#This prints the radar plot
+def update_radar_plot(design_to_plot, n, directory, input_pdb_path, pae_interaction_thres,CUTRE_thres, plddt_binder_thres, dsasa_thres, shape_complementarity_thres, interface_hbond_thres, interface_unsat_hbond_thres, binder_surf_hyd_thres):
+    #This is meant to store the original designs for the following plotting; is a little bit cutre 
+    update_designs_list(designs_list, design_to_plot)
+    merged_df = pd.DataFrame()
+    merged_df = merge_csv_files(directory, input_pdb_path)
+    #Most of the heavy work is carry in the utils file, go there for further info
+    radar_figure=radar_plot(designs_list, merged_df,pae_interaction_thres,CUTRE_thres, plddt_binder_thres, dsasa_thres, shape_complementarity_thres, interface_hbond_thres, interface_unsat_hbond_thres, binder_surf_hyd_thres )
+    # Override radar area colors with transparency
+    return radar_figure
+
+
+#########################################
+#### PIPELINE TRACKING TAB CALLBACKS ####
+#########################################
+
+
 # callback for job-status-list
 @callback(
     Output('job-status-list', 'children'),
@@ -560,15 +553,20 @@ def update_graph(working_dir, n, n_clicks_stop, xaxis_value, yaxis_value, input_
 )
 def update_job_list(n, working_dir):
     color = {
-        'Waiting': '#898952',
-        'WAITING': '#B6D369',
-        'Finished':'#93C48B',
-        'FAILED':'dangerous' 
+        'Waiting':'#C5CBD3',
+        'RFD': '#4b2362',
+        'Filtering': '#863071',
+        'pMPNN':'#c14168',
+        'Scoring':'#e5715e',
+        'Finished':'#edb081',
+        'Failed':'#000F08' 
     }
 
     df = track_job_status(f'{working_dir}/output/')
     # Extract run number and sort descending
     df_sorted = df.copy()
+    if df_sorted.empty:
+        return [dbc.ListGroupItem("This is an old project. No job status information available.")]
     df_sorted['run_number'] = df_sorted['job'].str.extract(r'(\d+)', expand=False).astype(int)
     df_sorted = df_sorted.sort_values(['run_number','gpu'], ascending=[False,True ])
     items = []
@@ -628,6 +626,47 @@ def update_log_viewer(n_clicks_list):
 
     return outfile_content, errorfile_content
 
+##################################
+#### EXTRACTION TAB CALLBACKS ####
+##################################
+
+# Callback for molecule representation
+@callback(
+    Output("extractions_molecule", "data"),
+    [
+    Input("extractions_molecule_dropdown", "value"),
+    Input("directory-dropdown", "value"),
+    Input("input_pdb_path", "value")
+    ]
+)
+def return_molecule(value, directory, input_path):
+    if not value or not directory:
+        raise PreventUpdate
+
+    data_path, filename = get_design_file_path_and_name(value, directory, input_path)
+
+
+    file_path = os.path.join(data_path, filename + ".pdb")
+
+
+    print(f"Loading molecule from: {file_path}")
+
+    chainA = molstar_helper.get_targets(chain="A")
+    chainB = molstar_helper.get_targets(chain="B")
+
+    chainA_representation = Representation(type='cartoon', color="uniform")
+    chainA_representation.set_color_params({'value': 15577217})
+    chainB_representation = Representation(type='gaussian-surface', color="uniform")
+    chainB_representation.set_type_params({'alpha': 1})
+    chainB_representation.set_color_params({'value': 8815233})
+
+    component_A = molstar_helper.create_component("Chain A", chainA, chainA_representation)
+    component_B = molstar_helper.create_component("Chain B", chainB, chainB_representation)
+
+    data = molstar_helper.parse_molecule(file_path, "pdb", component=[component_A, component_B], preset={'kind': 'empty'})
+
+    return data
+
 @callback(
     Output('model-specific-options', 'children'),
     Output('selected-model', 'data'),
@@ -645,7 +684,6 @@ def update_model_specific_options(n_clicks_list):
     else:
         triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
         selected_model = eval(triggered_id)['name']
-
 
     if selected_model == 'CT':
         return (html.Div([
@@ -773,62 +811,229 @@ def update_model_specific_options(n_clicks_list):
                     )
                 ]),
             ]), 'CT', 'CodonTransformer')
+    elif selected_model == 'JB':
+        return (html.Div([
+            html.Br(),
+            html.Div([  
+                html.Span("JohnBercow Options", className='model-options-title')
+            ], style={'textAlign':'center'}),
+            html.Br(),
+            dbc.Row([
+                dbc.Col([
+                    html.H5('Order Name'),
+                    dcc.Input(
+                        id={'type':'param', 'name':'order_name'},
+                        value='',
+                        type='text',
+                        placeholder='Your Order Name',
+                        className="input-box",
+                        style={'width':'100%'}
+                    ),
+                ], width=4),
+                dbc.Col([
+                    html.H5('Design Prefix'),
+                    dcc.Input(
+                        id={'type':'param', 'name':'design_prefix'},
+                        type='text',
+                        value='',
+                        placeholder='Your design prefix',
+                        className="input-box",
+                        style={'width':'100%'}
+                    )
+                ], width=4),
+                dbc.Col([
+                    html.H5('Design ID'),
+                    dcc.Input(
+                        id={'type':'param', 'name':'design_id'},
+                        placeholder='Your design ID',
+                        value='',
+                        className="input-box",
+                        style={'width':'100%'}
+                    )
+                ], width=4)
+            ]),
+            html.Br(), #Separator
+            dbc.Row([
+                dbc.Col([
+                    html.H5('Species'),
+                    dcc.Dropdown(
+                        id={'type':'param', 'name':'species_JB'},
+                        options=[
+                            {'label':'Escherichia coli', 'value':'e_coli'},
+                            {'label':'Homo sapiens', 'value':'h_sapiens'}
+                        ],
+                        value='',
+                    )
+                ]),
+                dbc.Col([
+                    html.H5('Golden Gate Vector'),
+                    dcc.Dropdown(
+                        id={'type':'param', 'name':'golden_gate_vector_JB'},
+                        options = get_gg_vectors(f'{script_dir}/utils/dna_extraction/JB/lab_vectors'),
+                        value = ''
+                    )
+                ])
+            ]),
+            html.Br(), #Separator
+            dbc.Row([
+                dbc.Button('Other options', id='jb-options-button', n_clicks=0),
+                dbc.Collapse(
+                    html.Div(children=[
+                        html.Br(), #Separator
+                        dbc.Row([
+                            dbc.Col([
+                                html.H5('Skip IDT Optimization'),
+                                dbc.RadioItems(
+                                    id={'type':'param', 'name':'skip_idt_radio'},
+                                    options=[
+                                        {'label': 'True', 'value': True},
+                                        {'label': 'False', 'value': False}
+                                    ],
+                                    value=False
+                                )
+                            ], width = 4),
+                            dbc.Col([
+                                html.H5('IDT Score Threshold'),
+                                dbc.Input( #Add a callback that puts this in invalid state if the input is not a number
+                                    id={'type':'param', 'name':'idt_score'},
+                                    type='number',
+                                    placeholder='IDT Score',
+                                    value=7
+                                )], width = 4                            
+                            ),
+                            dbc.Col([
+                                html.H5('Sequence Max Length'),
+                                dbc.Input(
+                                    id={'type':'param', 'name':'sequence_max_length'},
+                                    type='number',
+                                    placeholder='Sequence Max Length',
+                                    value=1500
+                                )], width = 4
+                            )
+                        ]),
+                        html.Br(), #Separator
+                        dbc.Row([
+                            dbc.Col([
+                                html.H5('Starting Kmers Weight'),
+                                dbc.Input(
+                                    id={'type':'param', 'name':'starting_kmers_weight'},
+                                    type='number',
+                                    placeholder='Starting Kmers Weight',
+                                    value=10
+                                )], width=4
+                            ),
+                            dbc.Col([
+                                html.H5('Number of Domesticator Steps'),
+                                dbc.Input(
+                                    id={'type':'param', 'name':'n_domesticator_steps'},
+                                    type='number',
+                                    placeholder='Number of Domesticator Steps',
+                                    value=10
+                                )], width=4
+                            ),
+                            dbc.Col([
+                                 html.H5('Max Sequence Attempts'),
+                                 dbc.Input(
+                                     id={'type':'param', 'name':'max_attempts'},
+                                     type='number',
+                                     placeholder='Max Attempts',
+                                     value=20
+                                 )], width=4
+                            ),
+                        ]),
+                        html.Br(), #Separator
+                        dbc.Row([
+                            dbc.Col([
+                                html.H5('Print Heterooligomers'),
+                                dbc.RadioItems(
+                                    id={'type':'param', 'name':'print_heterooligomers'},
+                                    options=[
+                                        {'label': 'True', 'value': True},
+                                        {'label': 'False', 'value': False}
+                                    ],
+                                    value=False
+                                )]
+                            ),
+                            dbc.Col([
+                                html.H5('No Layout'),
+                                dbc.RadioItems(
+                                    id={'type':'param', 'name':'no_layout'},
+                                    options=[
+                                        {'label': 'True', 'value': True},
+                                        {'label': 'False', 'value': False}
+                                    ],
+                                    value=False
+                                )]
+                            ),
+                            dbc.Col([
+                                 html.H5('No Plasmids'),
+                                 dbc.RadioItems(
+                                     id={'type':'param', 'name':'no_plasmids'},
+                                     options=[
+                                         {'label': 'True', 'value': True},
+                                         {'label': 'False', 'value': False}
+                                     ],
+                                     value=False
+                                 )]
+                            ),
+                            dbc.Col([
+                                html.H5('Verbose'),
+                                dbc.RadioItems(
+                                    id={'type':'param', 'name':'verbose'},
+                                    options=[
+                                        {'label': 'True', 'value': True},
+                                        {'label': 'False', 'value': False}
+                                    ],
+                                    value=True
+                                )]
+                            ),
+                            dbc.Col([
+                                html.H5('Echo'),
+                                dbc.RadioItems(
+                                    id={'type':'param', 'name':'echo'},
+                                    options=[
+                                        {'label': 'True', 'value': True},
+                                        {'label': 'False', 'value': False}
+                                    ],
+                                    value=False
+                                )]
+                            )
+                        ])
+                    ]), id='collapse-jb-options', is_open=False
+                )
+            ])
+        ]), 'JB', 'JohnBercow')
     elif selected_model == 'PDB':
         return (html.Div(), 'PDB', 'PDB')
 
-
-#callback to update the radar plot
+#Callback to open JB toggle
 @callback(
-    Output('radar-plot', 'figure'),
-    [
-    Input('scatter-plot', 'clickData'),
-    Input('interval-component', 'n_intervals'),
-    Input('directory-dropdown', 'value'),
-    Input('input_pdb_path', 'value'),
-    Input('pae_interaction_thres', 'value'),
-    Input('CUTRE_thres', 'value'),
-    Input('plddt_binder_thres', 'value'),
-    Input('dsasa_thres', 'value'),
-    Input('shape_complementarity_thres', 'value'),
-    Input('interface_hbond_thres', 'value'),
-    Input('interface_unsat_hbond_thres', 'value'),
-    Input('binder_surf_hyd_thres', 'value'),
-    ])
-
-#This prints the radar plot
-def update_radar_plot(design_to_plot, n, directory, input_pdb_path, pae_interaction_thres,CUTRE_thres, plddt_binder_thres, dsasa_thres, shape_complementarity_thres, interface_hbond_thres, interface_unsat_hbond_thres, binder_surf_hyd_thres):
-    #This is meant to store the original designs for the following plotting; is a little bit cutre 
-    update_designs_list(designs_list, design_to_plot)
-    merged_df = pd.DataFrame()
-    merged_df = merge_csv_files(directory, input_pdb_path)
-    #Most of the heavy work is carry in the utils file, go there for further info
-    radar_figure=radar_plot(designs_list, merged_df,pae_interaction_thres,CUTRE_thres, plddt_binder_thres, dsasa_thres, shape_complementarity_thres, interface_hbond_thres, interface_unsat_hbond_thres, binder_surf_hyd_thres )
-    # Override radar area colors with transparency
-    fill_colors = ['rgba(134,48,113,0.5)', 'rgba(237,176,129,0.5)']
-    line_colors = ['#863071', '#edb081']
-    for i, trace in enumerate(radar_figure.data):
-        if hasattr(trace, 'fillcolor'):
-            trace.fillcolor = fill_colors[i % len(fill_colors)]
-            trace.line.color = line_colors[i % len(line_colors)]
-        elif hasattr(trace, 'marker'):
-            trace.marker.color = line_colors[i % len(line_colors)]
-    return radar_figure
+    Output('collapse-jb-options', 'is_open'),
+    Input('jb-options-button', 'n_clicks'),
+    State('collapse-jb-options', 'is_open')
+)
+def toggle_filters_collapse_JB(n, is_open):
+    if n:
+        return not is_open
+    return is_open
 
 # Callback to extract hits
 @callback(
     Output('extraction-viewer', 'children'),
     [
         Input('directory-dropdown', 'value'),
-        Input('interval-component', 'n_intervals'),
+        Input('interval-component-extraction', 'n_intervals'),
         Input('execute-hits', 'n_clicks'),
         Input({'type':'param', 'name':dash.ALL}, 'value'),
         Input('extraction-selection', 'value')
     ],
     State('selected-model', 'data'),
+    State('directory-dropdown', 'value'),
+    prevent_initial_call=True
 )
 
-def extract_hits(working_dir, n, clicks, param_values, extraction_list, model_clicks):
-
+def extract_hits(working_dir, n, clicks, param_values, extraction_list, model_clicks, dir):
+    import time
     #Create the hits folder
     hits_folder = os.path.join(working_dir, 'hits')
     fastas_folder = os.path.join(hits_folder, 'fastas')
@@ -850,8 +1055,19 @@ def extract_hits(working_dir, n, clicks, param_values, extraction_list, model_cl
 
     ctx = dash.callback_context
 
+    # Message to the outfile viewer
     if ctx.triggered_id != "execute-hits":
-        raise PreventUpdate
+        try:
+            if model_clicks == "PDB": 
+                stdout = 'PDB OF THE HITS EXTRACTED. LIST OF PDBS EXTRACTED:\n' \
+                     f'{os.listdir(pdbs_folder)}\n'
+                return stdout
+            elif model_clicks =="CT":
+                return str("Waiting")
+        except: 
+            return str("waiting")
+
+            #raise PreventUpdate
 
     else:
         #Getting the list of clicks
@@ -876,29 +1092,30 @@ def extract_hits(working_dir, n, clicks, param_values, extraction_list, model_cl
 
         # Convert generator to dict when needed
         params_dict = dict(params)
-        # Whatever has been selected, the pdbs are extracted
-        
-        if extraction_list:
-            for description in extraction_list:
-        
-                # Get the PDBs
 
-                extract_pdbs(description,working_dir,pdbs_folder)
-        
-                #Get the fastas of the hits
-        
-                extract_fasta_seq(os.path.join(pdbs_folder, description), fastas_folder)
-        
-        # Make the multifasta file
-
-        multifastas(fastas_folder, multifastas_output)
-
-        # Extract the DNA sequence based on the model selected
         
         if chosen_model == 'CT':
-            stdout = extract_dna_seq_CT(multifastas_path, dnaseq_folder, params_dict)
+            if extraction_list:
+                for description in extraction_list:
+            
+                    #Get the fastas of the hits
         
+                    extract_fasta_seq(os.path.join(pdbs_folder, description), fastas_folder)
+            
+            # Make the multifasta file
+
+            multifastas(fastas_folder, multifastas_output)
+            stdout = extract_dna_seq_CT(multifastas_path, dnaseq_folder, params_dict)
+
         else:
+            if extraction_list:
+                for description in extraction_list:
+                    # Get the PDBs
+                    extract_pdbs(description,working_dir,pdbs_folder)
+                    # Get the fasta sequence
+                    extract_fasta_seq(os.path.join(pdbs_folder, description), fastas_folder)
+                    # Add stats to the PDB file
+                    add_stats_to_pdb(description, working_dir)
             stdout = 'PDB OF THE HITS EXTRACTED. LIST OF PDBS EXTRACTED:\n' \
                      f'{os.listdir(pdbs_folder)}\n' \
 
@@ -908,7 +1125,6 @@ def extract_hits(working_dir, n, clicks, param_values, extraction_list, model_cl
         filtered_df = metrics_df[metrics_df['description'].isin(extraction_list)]
         filtered_df.to_csv(f'{working_dir}/hits/hits_metrics.csv', index=False)
     
-    return stdout
 
 # Callback to toggle the Collapse for filters and axes in the sidebar
 @callback(
@@ -917,12 +1133,12 @@ def extract_hits(working_dir, n, clicks, param_values, extraction_list, model_cl
     State('filters-collapse', 'is_open')
 )
 
-#
-
 def toggle_filters_collapse(n, is_open):
     if n:
         return not is_open
     return is_open
+
+
 # Run the app
 if __name__ == '__main__':
     app.run(debug=False, dev_tools_hot_reload = False, use_reloader=True,

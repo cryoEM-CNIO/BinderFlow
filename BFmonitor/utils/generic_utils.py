@@ -13,6 +13,8 @@ import subprocess
 import plotly.express as px
 import plotly.graph_objects as go
 from Bio import SeqIO
+import copy
+
 
 #Count the residues in chain in order to get the length
 #Oye, muy bien pensado al que haya escrito esto, chapeau
@@ -95,22 +97,27 @@ def check_logs_ended(log_file):
             if 'done' in line.lower():
                 return 1
             else:
-                return 0
+                continue
+    return 0
 
 
 # Function to track job status
 def track_job_status(directory):
     """
-    Tracks job statuses for runs in the given directory.
-    Returns a DataFrame with job, GPU, status, and path.
+    Input:
+    - directory --> Directory where the 
+    -----------------------------
+    Output:
+    - status_df --> DataFrame with job, GPU, status and path
+    -------------------------------
     """
     job_status = []
-    states = ['Waiting', 'RFD', 'Filtering', 'pMPNN', 'AF2', 'Finished', 'FAILED']
+    states = ['Waiting', 'RFD', 'Filtering', 'pMPNN', 'Scoring', 'Finished']
 
     gpu_pattern = re.compile(r'.*\d+_gpu(\d+)')
     num_pattern = re.compile(r'\d+')
 
-    for root, dirs, _ in os.walk(directory):
+    for root, dirs, _ in os.walk(directory): # This is probably inefficient
         for dir_name in dirs:
             job_path = os.path.join(root, dir_name)
             slurm_logs_path = os.path.join(job_path, "slurm_logs")
@@ -128,9 +135,13 @@ def track_job_status(directory):
                 gpu_number = gpu_match.group(1)
 
                 # Count completed logs
-                counter = sum(check_logs_ended(os.path.join(subdir_path, f))
-                              for f in os.listdir(subdir_path) if f.endswith("out"))
-
+                counter = 0
+                for file in os.listdir(subdir_path):
+                    if not file.endswith("out"):
+                        continue
+                    else:
+                        counter += 1
+                        
                 job_record = {
                     "job": dir_name,
                     "gpu": gpu_number,
@@ -141,7 +152,7 @@ def track_job_status(directory):
                 # Check done/sc files
                 files_in_job = set(os.listdir(job_path))
                 if f"{dir_name}_done" in files_in_job:
-                    job_record["status"] = "Finished" if any(f.endswith(".sc") for f in files_in_job) else "FAILED"
+                    job_record["status"] = "Finished" if any(f.endswith(".sc") for f in files_in_job) else "Failed"
 
                 job_status.append(job_record)
 
@@ -229,7 +240,7 @@ def get_input_data(input_pdb_path):
 
 
 #Filtering of DataFrame to get only hits according to the metrics
-def filtering_df(merged_df,pae_interaction_thres, CUTRE_thres, plddt_binder_thres, dsasa_thres, shape_complementarity_thres, interface_hbond_thres, interface_unsat_hbond_thres, binder_surf_hyd_thres):
+def filtering_df(merged_df,pae_interaction_thres, CUTRE_thres, plddt_binder_thres, dsasa_thres, shape_complementarity_thres, interface_hbond_thres, interface_unsat_hbond_thres, binder_surf_hyd_thres,ipsae):
     '''
     --> Function to filter the df for the selection between the threshold. Separated to make code more legible
 
@@ -252,6 +263,7 @@ def filtering_df(merged_df,pae_interaction_thres, CUTRE_thres, plddt_binder_thre
     filtered_df=filtered_df[filtered_df['interface_hbonds'].between(interface_hbond_thres[0], interface_hbond_thres[1])]
     filtered_df=filtered_df[filtered_df['interface_unsat_hbonds'].between(interface_unsat_hbond_thres[0], interface_unsat_hbond_thres[1])]
     filtered_df=filtered_df[filtered_df['binder_surf_hyd'].between(binder_surf_hyd_thres[0], binder_surf_hyd_thres[1])]
+    filtered_df=filtered_df[filtered_df['ipSAE'].between(ipsae[0], ipsae[1])]
 
     # Ensure unique values in the description column
     filtered_df = filtered_df.drop_duplicates(subset='description')
@@ -270,12 +282,84 @@ def get_working_directories(working_dir):
     list: A list of paths to directories containing a folder named 'output'.
     """
     directories_list = []
-
     for root, dirs, files in os.walk(working_dir):
-        if 'Scoring_Stats.csv' in files:  # Check if 'Scoring_Stats.csv' is one of the directories, since this file is needed for the plotting
+        if '.binder_design_project' in files:  # Check if '.binder_design_project' is one of the directories, indicating a design project
             directories_list.append(root)
+            dirs.clear()  # Prevent further descent into subdirectories
+        else:
+            if 'Scoring_Stats.csv' in files:  # Check if 'Scoring_Stats.csv' is one of the directories, since this file is needed for the plotting
+                directories_list.append(root)
+                dirs.clear()
 
     return directories_list
+
+def create_campaigns(working_dir, campaing_name):
+    '''
+    Function to create a campaign folder starting from a parent directory
+    It gives you the option of crate a new folder and creates the needed files to be considered a campaign
+
+    Input:
+
+    - working_dir --> The working directory where to look for design projects
+
+    Output:
+
+    - message: A message indicating the status of the campaign creation
+    '''
+    # Create the campaign directory
+    campaign_dir = os.path.join(working_dir, campaing_name)
+    os.makedirs(campaign_dir, exist_ok=True)
+    # Create a hidden file to indicate it's a campaign
+    with open(os.path.join(campaign_dir, '.binder_design_project'), 'w') as f:
+        pass
+    message = f"Campaign '{campaing_name}' created at {campaign_dir}"
+    return message
+
+def path_to_tree(path: str) -> str:
+    """
+    Convert a POSIX-style path into a simple ASCII tree.
+    Example:
+        /a/b/c  ->
+        /
+        ├── a
+        │   └── b
+        │       └── c
+    
+    ------------------------
+    Input:
+    - path --> The POSIX-style path to convert
+    
+    ------------------------
+    Output:
+    - tree: A string representing the tree structure of the path
+    """
+    # Remove leading/trailing slashes and split
+    parts = [p for p in path.strip("/").split("/") if p]
+
+    if not parts:
+        return "/"
+
+    tree_lines = []
+    indent = ""
+    for i, part in enumerate(parts):
+        is_last = (i == len(parts) - 1)
+
+        if i == 0:
+            # root level
+            tree_lines.append("/")
+            prefix = "└── " if is_last else "├── "
+            tree_lines.append(prefix + part)
+        else:
+            indent = "│   " * i
+            prefix = "└── " if is_last else "├── "
+            tree_lines.append(indent + prefix + part)
+    
+    tree = "\n".join(tree_lines)
+
+    return tree
+
+
+
 
 
 
