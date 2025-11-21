@@ -55,10 +55,8 @@ def main():
         raise ValueError("Partial diffusion and sequence diversity cannot be run at the same time.")
         # For partial diffusion or sequence diversity, ensure rfd_hotspots is a string
     else:
-        if args.rfd_hotspots == "" or args.rfd_hotspots is None:
             args.rfd_hotspots = ""
-        else:
-            raise ValueError("During partial diffusion or sequence diversity, rfd_hotspots must be an empty string.")
+
     if args.hits_number is None:
         args.hits_number = 999
     if args.residues is None:
