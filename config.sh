@@ -22,3 +22,8 @@ export CPUS_PER_GPU=12
 export GRES=gpu:1
 
 source "$(conda info --base)/etc/profile.d/conda.sh" # ACTIVATE CONDA COMMAND, CHANGE FOR YOUR COMMAND IF NEEDED
+
+source /apps/profile.d/load_cluster.sh
+unset CUDA_HOME
+unset LD_LIBRARY_PATH
+

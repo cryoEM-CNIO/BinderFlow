@@ -41,7 +41,7 @@ noise_scale=1
 checkpoint="$RFD_PATH/models/Complex_base_ckpt.pt"
 node=''
 hits_number=999
-fixed_residues="None"
+residues="None"
 json="None"
 sequence_diversity="False"
 
@@ -64,7 +64,7 @@ while [[ $# -gt 0 ]]; do
         -ck|--ckp) checkpoint="$2" ; shift  ;; #Add the path to the checkpoint to add weight toward some fold
         -w|--node) node="$2" ; shift  ;; # Provide a specific name of a node to submit to this node with -w. If not provided it will be as usual.
         -hn|--hits_number) hits_number="$2" ; shift ;;
-        -re|--residues) fixed_residues="$2" ; shift ;; #Residues index to fix, useful for scaffolding
+        -re|--residues) residues="$2" ; shift ;; #Residues index to fix, useful for scaffolding
         -sd|--sequence_diversity) sequence_diversity="$2" ; shift ;; #Whether to run sequence diversity
         *) echo "Unknown option: $1" ; exit 1 ;;
     esac
@@ -89,7 +89,7 @@ if [ $json != "None" ]; then
     echo "Noise steps: $noise_steps"
     echo "Noise scale: $noise_scale"
     echo "Checkpoint: $checkpoint"
-    echo "Fixed residues: $fixed_residues"
+    echo "Fixed residues: $residues"
     echo "Hits number: $hits_number"
     echo "Sequence diversity: $sequence_diversity"
 fi
@@ -120,7 +120,7 @@ python3 $BINDERFLOW_PATH/binderflow/scripts/json_variable_generation.py --input 
                                                                     --pmp_nseqs "$pmp_nseqs" --pmp_relax_cycles "$pmp_relax_cycles" \
                                                                     --partial_diff "$partial_diff" --noise_steps "$noise_steps" \
                                                                     --noise_scale "$noise_scale" --ckp "$checkpoint" \
-                                                                    --residues "$fixed_residues" --hits_number "$hits_number" \
+                                                                    --residues "$residues" --hits_number "$hits_number" \
                                                                     --sequence_diversity "$sequence_diversity" || { echo "Error: json_variable_generation.py failed. Stopping script."; exit 1; }
 
 
@@ -158,7 +158,7 @@ while [ ! -f 'campaign_done' ]; do
     sbatch -w "$node" --nodes="$NODES" -p "$PARTITION" --open-mode=append --gres="$GRES" --exclusive --cpus-per-gpu="$CPUS_PER_GPU" -o ./output/run_$i/slurm_logs/%j.out -e ./output/run_$i/slurm_logs/%j.err \
         "$BINDERFLOW_PATH/binderflow/slurm_submit/submit_master.sh" --input "$input" --template "$template" --run "$i" --rfd_contigs "$rfd_contigs" --rfd_ndesigns "$rfd_ndesigns" \
         --pmp_nseqs "$pmp_nseqs" --pmp_relax_cycles "$pmp_relax_cycles" --partial_diff "$partial_diff" --noise_steps "$noise_steps" --noise_scale "$noise_scale" --ckp "$checkpoint" \
-        --residues "$fixed_residues" --hits_number "$hits_number" --directory "$SCRIPT_DIR" --sequence_diversity "$sequence_diversity" --rfd_hotspots "$rfd_hotspots"
+        --residues "$residues" --hits_number "$hits_number" --directory "$SCRIPT_DIR" --sequence_diversity "$sequence_diversity" --rfd_hotspots "$rfd_hotspots"
 
 done
 
